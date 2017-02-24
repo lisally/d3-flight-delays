@@ -70,12 +70,14 @@ p {
   shape-rendering: crispEdges;
 }
 
-.month {
-  font-size: 12px;
-  padding-left: 400px;
-  margin-top: -30px;
+.view1 {
+  padding-left: 50px;
 }
 
+.view2 {
+  padding-left: 50px;
+
+}
 </style>
 
 <body>
@@ -157,7 +159,6 @@ p {
       </div>
 
       <svg class="view2"></svg>
-      <p class="month">Months in 2016</p>
     </div>
 
     <div class="col-md-4">
@@ -306,6 +307,18 @@ function filterView2() {
 }
 
 function drawView2(data) {
+  var yLabel
+
+  if (filters2[0] == "Total_Delay") {
+    yLabel = "Number of Delayed Departures (Count)"
+  } else if (filters2[0] == "Arrival_Delay") {
+    ylabel = "Delayed Arrivals (Percent)"
+  } else if (filters2[0] == "Max_Delay") {
+    yLabel = "Maximum Delayed Departure Time (Minutes)"
+  } else {
+    yLabel = "Average Delayed Departure Time (Minutes)"
+  }
+
   var x = d3.scaleBand().rangeRound([0, 700]).padding(0.3);
   var y = d3.scaleLinear().rangeRound([height, 0]);
   x.domain(data.map(function(d) { return d.Month; }));
@@ -322,21 +335,21 @@ function drawView2(data) {
       .attr("class", "axis")
       .attr("transform", "translate(0," + height + ")")
       .call(d3.axisBottom(x))
-      .append("text")
-        .attr("x", w)
-        .attr("y", -6)
-        .style("text-anchor", "end")
-        .text("Month");
+  g.append("text")
+    .attr("y", height + margin.bottom + 10)
+    .attr("x", width/2.75)
+    .style("text-anchor", "middle")
+    .text("Month");
 
   g.append("g")
       .attr("class", "axis")
-      .call(d3.axisLeft(y).ticks(10))
-    .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 10)
-      .attr("dy", "0.71em")
-      .attr("text-anchor", "end")
-      .text("Frequency");
+      .call(d3.axisLeft(y).ticks(10));
+  g.append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("y", -55)
+    .attr("dx", -height/2)
+    .attr("text-anchor", "middle")
+    .text(yLabel);
 
   var rect = g.selectAll("rect")
     .data(data)
