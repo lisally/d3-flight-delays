@@ -50,6 +50,7 @@ p {
 
 .controls {
   padding-top: 300px;
+  margin-left: 100px;
 }
 
 .title {
@@ -70,14 +71,6 @@ p {
   shape-rendering: crispEdges;
 }
 
-.view1 {
-  padding-left: 50px;
-}
-
-.view2 {
-  padding-left: 50px;
-
-}
 </style>
 
 <body>
@@ -95,7 +88,7 @@ p {
 <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
-<div id="layout" class="container-fluid">
+<div id="layout" class="container">
 
   <div id="visualization">
 
@@ -110,6 +103,8 @@ p {
   <div class="col-md-4">
     <div class="controls">
       <div class="filters">
+        <input type="checkbox" id="filteredDataset" value="filterBool">&nbsp;Scale to Filtered Dataset</input>
+        <br><br>
         <label>Flight Delay Reasons</label>
         <br>
         <select id="filter1" class="dropdown">
@@ -163,7 +158,17 @@ p {
 
     <div class="col-md-4">
       <div class="controls">
-
+      	<div class="filters">
+          <label>Random Statistics</label>
+          <br>
+          <select id="filter3" class="dropdown">
+            <option value="Total_Delay">Number of Delayed Flights</option>
+            <option value="Average_Delay">Average Delayed Time</option> 
+            <option value="Max_Delay">Maximum Delayed Time</option> 
+            <option value="Delayed_Arrival">Percent of Delayed Arrivals</option> 
+          </select>
+        </div>
+        <br>
         <div class="filters">
           <label>Top 10 Delayed Airline Carriers</label>
           <br>
@@ -182,16 +187,6 @@ p {
           </select>
         </div>
         <br>
-        <div class="filters">
-          <label>Random Statistics</label>
-          <br>
-          <select id="filter3" class="dropdown">
-            <option value="Total_Delay">Number of Delayed Flights</option>
-            <option value="Average_Delay">Average Delayed Time</option> 
-            <option value="Max_Delay">Maximum Delayed Time</option> 
-            <option value="Delayed_Arrival">Percent of Delayed Arrivals</option> 
-          </select>
-        </div>
       </div>
     </div>
 
@@ -219,6 +214,16 @@ document.getElementById("filter2").onchange = function() {
 document.getElementById("filter3").onchange = function() {
   filters2[0] = this.value;
   filterView2(); 
+}
+
+document.getElementById("filteredDataset").onchange = function() {
+  if (filtered) {
+    filtered = false;
+  } else {
+    filtered = true;
+  }
+
+  filterView1(); 
 }
 
 var width = 960,
@@ -268,6 +273,8 @@ function numberWithCommas(x) {
 var xAxis = d3.axisBottom()
   .ticks(12)
   .scale(scaleMonth)
+
+var filtered = false;
 
 d3.queue()
   .defer(d3_request.json, "states.json")
@@ -413,9 +420,18 @@ function filterView1() {
 
 function drawView1(data) {
 
-  scaleR = d3.scaleLinear()
+	// Scale circles relative to each filtered dataset
+  if (filtered) {
+	scaleR = d3.scaleLinear()
     .domain([d3.min(data, function(d) { return d.value.total; }), d3.max(data, function(d) { return d.value.total; })])
-    .range([4,24])
+    .range([4, 56.9])
+  } else {
+
+ 	// Scale circles to overall full dataset
+	scaleR = d3.scaleLinear()
+    .domain([d3.min(mapData, function(d) { return d.Total_Delay; }), d3.max(mapData, function(d) { return d.Total_Delay; })])
+    .range([4, 8])
+  }
 
 
   var circle = view1.selectAll("circle")
