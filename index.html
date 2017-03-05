@@ -1,6 +1,7 @@
 <html>
 <!DOCTYPE html>
 <meta charset="utf-8">
+
 <style>
 
 body {
@@ -71,6 +72,10 @@ p {
   shape-rendering: crispEdges;
 }
 
+.view1 {
+  margin-left: -80px;
+}
+
 </style>
 
 <body>
@@ -103,7 +108,7 @@ p {
   <div class="col-md-4">
     <div class="controls">
       <div class="filters">
-        <input type="checkbox" id="filteredDataset" value="filterBool">&nbsp;Scale to Filtered Dataset</input>
+        <input type="checkbox" id="filteredDataset" value="filterBool" checked>&nbsp;Scale to Filtered Dataset</input>
         <br><br>
         <label>Flight Delay Reasons</label>
         <br>
@@ -147,7 +152,7 @@ p {
   </div>
   </div>
     
-  <div class="row">
+  <div id="row2" class="row">
     <div class="col-md-8">
       <div class="title">
         <p>2016 U.S. Airline Delayed Flight Departures</p>
@@ -159,6 +164,12 @@ p {
     <div class="col-md-4">
       <div class="controls">
       	<div class="filters">
+          <div id=airportLabel>
+            <label>Airport:</label>
+            <p>All</p>
+          </div> 
+          <button id="airportClear">Clear</button>
+          <br><br>
           <label>Random Statistics</label>
           <br>
           <select id="filter3" class="dropdown">
@@ -195,8 +206,6 @@ p {
   <p style="text-align: center;"> The dataset used in these visualizations is provided by the United States of Department of Transportation from the Bureau of Transportation Statistics Website. <br> For more information, please visit their website <a href="https://www.transtats.bts.gov/DL_SelectFields.asp?Table_ID=236&DB_Short_Name=On-Time" target="_blank">here</a>.</p>
 </div>
 
-
-
 </div>
 
 <script>
@@ -222,9 +231,16 @@ document.getElementById("filteredDataset").onchange = function() {
   } else {
     filtered = true;
   }
-
   filterView1(); 
 }
+
+$("#airportClear" ).click(function() {
+  filters2[2] = "All"
+  d3.selectAll("circle").style("fill", function(d) { return scaleDotColor(filters1[0])})
+  $("#airportLabel").empty()
+  $("#airportLabel").append("<label>Airport: " + "</label>" + "<p>All</p>")
+  filterView2()
+});
 
 var width = 960,
     height = 500;
@@ -252,40 +268,33 @@ var view2 = d3.select(".view2")
   .append("g")
   .attr("transform", "translate(" + margin.left + "," +  margin.top + ")");
 
-var states, mapData, barData, scaleR, scaleY;
-
+var states, delayData, scaleR, scaleY;
 var filters1 = ["Total_Delay", 1, 12]
-
-var filters2 = ["Total_Delay", "All"]
+var filters2 = ["Total_Delay", "All", "All"]
 
 scaleDotColor = d3.scaleOrdinal()
-    .domain(["Total_Delay", "Carrier_Delay", "Weather_Delay", "Security_Delay", "Late_Aircraft_Delay", "Nas_Delay"])
-    .range(["rgb(114, 158, 206)", "rgb(173, 139, 201)", "rgb(103, 191, 92)", "rgb(237, 102, 93)", "rgb(205, 204, 93)", "rgb(109, 204, 218)"])
+  .domain(["Total_Delay", "Carrier_Delay", "Weather_Delay", "Security_Delay", "Late_Aircraft_Delay", "Nas_Delay"])
+  .range(["rgb(114, 158, 206)", "rgb(173, 139, 201)", "rgb(103, 191, 92)", "rgb(237, 102, 93)", "rgb(205, 204, 93)", "rgb(109, 204, 218)"])
 
-scaleMonth = d3.scaleOrdinal()
-  .domain([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-  .range(["Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sep", "Nov", "Dec"])
+scaleChosenDotColor = d3.scaleOrdinal()
+  .domain(["Total_Delay", "Carrier_Delay", "Weather_Delay", "Security_Delay", "Late_Aircraft_Delay", "Nas_Delay"])
+  .range(["rgb(31,119,180)", "rgb(148,103,189)", "rgb(44,160,44)", "rgb(214,39,40)", "rgb(188,189,34)", "rgb(23,190,207)"])
 
 function numberWithCommas(x) {
-    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-var xAxis = d3.axisBottom()
-  .ticks(12)
-  .scale(scaleMonth)
 
-var filtered = false;
+var filtered = true;
 
 d3.queue()
   .defer(d3_request.json, "states.json")
-  .defer(d3_request.json, "flights.json")
-  .defer(d3_request.json, "flights2.json")
+  .defer(d3_request.json, "delays.json")
   .await(ready);
 
-function ready(error, s, m, b) {
+function ready(error, s, d) {
    states = s;
-   mapData = m;
-   barData = b;
+   delayData = d;
 
   view1.append("path")
     .attr("class", "states")
@@ -293,23 +302,60 @@ function ready(error, s, m, b) {
     .attr("d", path);
 
   scaleY = d3.scaleLinear()
-    .domain([d3.min(barData, function(d) { return d.Total_Delay; }), d3.max(barData, function(d) { return d.Total_Delay; })])
+    .domain([d3.min(delayData, function(d) { return d.Total_Delay; }), d3.max(delayData, function(d) { return d.Total_Delay; })])
     .range([0, height])
 
   filterView1()
-
   filterView2()
 }
 
-
 function filterView2() {
+  var data = delayData;
   var stat = filters2[0]
   var carrier = filters2[1]
+  var airport = filters2[2]
 
-  var data = barData.filter(function(d) {
-    return d["Carrier"] == carrier;
+  if (airport != "All") {
+    data = data.filter(function(d) {
+      return d["Airport_Name"] == airport;
+    })
+  }
+
+  if (carrier != "All") {
+    data = data.filter(function(d) {
+      return d["Carrier"] == carrier;
     });
 
+  }
+
+  if (stat == "Total_Delay") {
+    data = d3.nest()
+    .key(function(data) { return data.Month; })         
+    .rollup(function(data) { return {
+      stat: d3.sum(data, function(d) {
+          return d[stat]
+      })
+    }; })
+    .entries(data)
+  } else if (stat == "Average_Delay" || stat == "Delayed_Arrival") {
+    data = d3.nest()
+    .key(function(data) { return data.Month; })         
+    .rollup(function(data) { return {
+      stat: d3.mean(data, function(d) {
+        return d[stat]
+      })
+    }; })
+    .entries(data)
+  } else {
+    data = d3.nest()
+    .key(function(data) { return data.Month; })         
+    .rollup(function(data) { return {
+      stat: d3.max(data, function(d) {
+          return d[stat]
+      })
+    }; })
+    .entries(data)
+  }
   drawView2(data)
 }
 
@@ -328,29 +374,32 @@ function drawView2(data) {
 
   var x = d3.scaleBand().rangeRound([0, 700]).padding(0.3);
   var y = d3.scaleLinear().rangeRound([height, 0]);
-  x.domain(data.map(function(d) { return d.Month; }));
+  x.domain(data.map(function(d) { return d.key; }));
 
-  y.domain([0, d3.max(data, function(d) { return d[filters2[0]]; })]);
+  y.domain([0, d3.max(data, function(d) { return d.value.stat; })]);
 
-  var g = view2.selectAll("g")
-    .remove()
+  var g = view2.selectAll("g").remove()
 
   var g = view2.append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
+// x-axis  
   g.append("g")
-      .attr("class", "axis")
-      .attr("transform", "translate(0," + height + ")")
-      .call(d3.axisBottom(x))
+    .attr("class", "x-axis")
+    .attr("transform", "translate(0," + height + ")")
+    .call(d3.axisBottom(x))
   g.append("text")
     .attr("y", height + margin.bottom + 10)
     .attr("x", width/2.75)
     .style("text-anchor", "middle")
     .text("Month");
 
-  g.append("g")
-      .attr("class", "axis")
-      .call(d3.axisLeft(y).ticks(10));
+// y-axis
+ g.append("g")
+    .attr("class", "y-axis")
+    .transition()
+        .duration(500)
+    .call(d3.axisLeft(y).ticks(10))
   g.append("text")
     .attr("transform", "rotate(-90)")
     .attr("y", -55)
@@ -361,27 +410,32 @@ function drawView2(data) {
   var rect = g.selectAll("rect")
     .data(data)
 
-    rect.enter().append("rect")
-      .attr("class", "rect")
-      .attr("x", function(d) { return x(d.Month); })
-      .attr("y", function(d) { return y(d[filters2[0]]); })
-      .attr("width", x.bandwidth())
-      .attr("height", function(d) { return height - y(d[filters2[0]]); })
-      .style("opacity", 1)
+  rect.enter().append("rect")      
+    .attr("class", "rect")
+    .attr("x", function(d) { return x(d.key); })
+    .attr("y", function(d) { return height; })
+    .attr("width", x.bandwidth())
+    .attr("height", function(d) { return 0 })
+    .transition()
+      .duration(1000)
+    .attr("x", function(d) { return x(d.key); })
+    .attr("y", function(d) { return y(d.value.stat); })
+    .attr("width", x.bandwidth())
+    .attr("height", function(d) { return height - y(d.value.stat); })
+    .style("opacity", 1)
 
+    var rect = g.selectAll("rect")
     .on("mouseover", function(d) {
       d3.select(this).style("opacity", 0.5);
 
-    tooltip.html("<p class='tp' style='font-weight:bold;'>" + parseNumbers(d[filters2[0]]) + "</p>")
+    tooltip.html("<p class='tp' style='font-weight:bold;'>" + parseNumbers(d.value.stat) + "</p>")
     .style("left", (d3.event.pageX + 5) + "px")
     .style("top", (d3.event.pageY - 28) + "px")
     .style("opacity", 100)
       
     })
-
     .on("mouseout", function(d) { 
       d3.select(this).style("opacity", 1);
-
       tooltip
         .style("opacity", 0);
     })
@@ -401,12 +455,12 @@ function filterView1() {
   var beginFilter = filters1[1]
   var endFilter = filters1[2]
 
-  var data = mapData.filter(function(d) {
+  var data = delayData.filter(function(d) {
     return d["Month"] >= beginFilter && d["Month"] <= endFilter;
     });
 
   data = d3.nest()
-    .key(function(data) { return data.Name; })
+    .key(function(data) { return data.Airport_Name; })
     .rollup(function(data) { return {
       lat: d3.median(data, function(d) { return d.Lat; }),
       long: d3.median(data, function(d) { return d.Long; }),
@@ -422,17 +476,16 @@ function drawView1(data) {
 
 	// Scale circles relative to each filtered dataset
   if (filtered) {
-	scaleR = d3.scaleLinear()
-    .domain([d3.min(data, function(d) { return d.value.total; }), d3.max(data, function(d) { return d.value.total; })])
-    .range([4, 56.9])
+  	scaleR = d3.scaleLinear()
+      .domain([d3.min(data, function(d) { return d.value.total; }), d3.max(data, function(d) { return d.value.total; })])
+      .range([4, 56.9])
   } else {
 
  	// Scale circles to overall full dataset
-	scaleR = d3.scaleLinear()
-    .domain([d3.min(mapData, function(d) { return d.Total_Delay; }), d3.max(mapData, function(d) { return d.Total_Delay; })])
-    .range([4, 8])
+  	scaleR = d3.scaleLinear()
+      .domain([d3.min(delayData, function(d) { return d.Total_Delay; }), d3.max(delayData, function(d) { return d.Total_Delay; })])
+      .range([4, 8])
   }
-
 
   var circle = view1.selectAll("circle")
     .data(data);
@@ -457,6 +510,18 @@ function drawView1(data) {
 
       tooltip
         .style("opacity", 0);
+    })
+
+    .on("click", function(d) {
+      d3.selectAll("circle").style("fill", function(d) { return scaleDotColor(filters1[0])})
+      d3.select(this).style("fill", function(d) { return scaleChosenDotColor(filters1[0])})
+      filters2[2] = d.key
+      $('html,body').animate({
+        scrollTop: $("#row2").offset().top},
+        'slow');
+      $("#airportLabel").empty()
+      $("#airportLabel").append("<label>Airport: " + "</label>" + "<p>" + d.key + "</p>")
+      filterView2()
     })
 
     .merge(circle)
