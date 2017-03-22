@@ -13,15 +13,19 @@ body {
 p {
   margin: 2px;
 }
+#airportClear {
+  margin-left: 125px;
+  height: 20px;
+  font-size: 12px;
+}
+
+#airportLabel {
+  padding-bottom: 5px;
+}
 
 .tp {
   margin-top: -2px;
   margin-bottom: -2px;
-}
-
-.label {
-  font-size: 24px;
-  font-color: black;
 }
 
 .states {
@@ -164,12 +168,11 @@ p {
     <div class="col-md-4">
       <div class="controls">
       	<div class="filters">
+          <label>Airport:</label><button id="airportClear">Clear</button>
           <div id=airportLabel>
-            <label>Airport:</label>
             <p>All</p>
           </div> 
-          <button id="airportClear">Clear</button>
-          <br><br>
+          
           <label>Random Statistics</label>
           <br>
           <select id="filter3" class="dropdown">
@@ -236,9 +239,10 @@ document.getElementById("filteredDataset").onchange = function() {
 
 $("#airportClear" ).click(function() {
   filters2[2] = "All"
+  selected = ""
   d3.selectAll("circle").style("fill", function(d) { return scaleDotColor(filters1[0])})
   $("#airportLabel").empty()
-  $("#airportLabel").append("<label>Airport: " + "</label>" + "<p>All</p>")
+  $("#airportLabel").append("<p>All</p>")
   filterView2()
 });
 
@@ -286,6 +290,7 @@ function numberWithCommas(x) {
 
 
 var filtered = true;
+var selected = "";
 
 d3.queue()
   .defer(d3_request.json, "states.json")
@@ -398,7 +403,7 @@ function drawView2(data) {
  g.append("g")
     .attr("class", "y-axis")
     .transition()
-        .duration(500)
+        .duration(750)
     .call(d3.axisLeft(y).ticks(10))
   g.append("text")
     .attr("transform", "rotate(-90)")
@@ -417,7 +422,7 @@ function drawView2(data) {
     .attr("width", x.bandwidth())
     .attr("height", function(d) { return 0 })
     .transition()
-      .duration(1000)
+      .duration(750)
     .attr("x", function(d) { return x(d.key); })
     .attr("y", function(d) { return y(d.value.stat); })
     .attr("width", x.bandwidth())
@@ -495,9 +500,9 @@ function drawView1(data) {
   circle.enter()
     .append("circle")
     .attr("class", "circle")
-    .style("opacity", 1)
+    .style("opacity", 0.7)
     .on("mouseover", function(d) {
-      d3.select(this).style("opacity", 0.6);
+      d3.select(this).style("opacity", 1);
 
     tooltip.html("<p class='tp' style='font-weight:bold'>" + d.key + "</p> <p class='tp'>" + "Delays: " + (numberWithCommas(d.value.total)) + "</p>")
       .style("left", (d3.event.pageX + 5) + "px")
@@ -506,13 +511,14 @@ function drawView1(data) {
     })
 
     .on("mouseout", function(d) { 
-      d3.select(this).style("opacity", 1);
+      d3.select(this).style("opacity", 0.7);
 
       tooltip
         .style("opacity", 0);
     })
 
     .on("click", function(d) {
+      selected = d.key
       d3.selectAll("circle").style("fill", function(d) { return scaleDotColor(filters1[0])})
       d3.select(this).style("fill", function(d) { return scaleChosenDotColor(filters1[0])})
       filters2[2] = d.key
@@ -520,14 +526,20 @@ function drawView1(data) {
         scrollTop: $("#row2").offset().top},
         'slow');
       $("#airportLabel").empty()
-      $("#airportLabel").append("<label>Airport: " + "</label>" + "<p>" + d.key + "</p>")
+      $("#airportLabel").append("<p>" + d.key + "</p>")
       filterView2()
     })
 
     .merge(circle)
     .attr("transform", function(d) { return "translate(" + projection([d.value.long, d.value.lat]) + ")"; })
     .attr("r", function(d) { return scaleR(d.value.total)})
-    .style("fill", function(d) { return scaleDotColor(filters1[0])})
+    .style("fill", function(d) { 
+      if (selected == d.key) {
+        return scaleChosenDotColor(filters1[0])
+      } else {
+        return scaleDotColor(filters1[0])
+      }
+    })
 }
 
 </script>
